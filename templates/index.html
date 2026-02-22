@@ -498,7 +498,7 @@
                     document.getElementById('historyModal')?.remove();
                     
                     // 채팅 영역 초기화
-                    chatMessages.innerHTML = '';
+                    chatContainer.innerHTML = '';
                     
                     // 메시지 복원
                     data.messages.forEach(msg => {
@@ -506,8 +506,11 @@
                     });
                     
                     alert('대화를 불러왔습니다!');
+                } else {
+                    alert('불러오기 실패: ' + (data.error || '알 수 없는 오류'));
                 }
             } catch (error) {
+                console.error(error);
                 alert('대화를 불러오는데 실패했습니다.');
             }
         }
