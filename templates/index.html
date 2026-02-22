@@ -199,6 +199,21 @@
     </style>
 </head>
 <body>
+    <!-- 닉네임 입력 모달 -->
+    <div id="nicknameModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:1000;">
+        <div style="background:white;border-radius:16px;padding:32px;width:90%;max-width:400px;text-align:center;">
+            <h2 style="margin-bottom:8px;">🏛️ 소크라테스식 기획 도우미</h2>
+            <p style="color:#666;margin-bottom:24px;">닉네임을 입력하세요</p>
+            <input type="text" id="nicknameInput" placeholder="닉네임" 
+                   style="width:100%;padding:12px 16px;border:2px solid #667eea;border-radius:12px;font-size:1.1rem;text-align:center;margin-bottom:16px;"
+                   onkeydown="if(event.key==='Enter')submitNickname()">
+            <button onclick="submitNickname()" 
+                    style="width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;">
+                시작하기
+            </button>
+        </div>
+    </div>
+    
     <div class="container">
         <div class="header">
             <h1>🏛️ 소크라테스식 기획 도우미</h1>
@@ -497,7 +512,52 @@
             }
         }
         
-        userInput.focus();
+        async function submitNickname() {
+            const nickname = document.getElementById('nicknameInput').value.trim();
+            if (!nickname) {
+                alert('닉네임을 입력하세요!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/set_user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname })
+                });
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    document.getElementById('nicknameModal').style.display = 'none';
+                    document.querySelector('.header h1').textContent = `🏛️ ${nickname}의 기획 도우미`;
+                    userInput.focus();
+                } else {
+                    alert(data.error || '오류가 발생했습니다.');
+                }
+            } catch (error) {
+                alert('연결 오류가 발생했습니다.');
+            }
+        }
+        
+        // 페이지 로드 시 사용자 확인
+        async function checkUser() {
+            try {
+                const response = await fetch('/get_user');
+                const data = await response.json();
+                
+                if (data.user) {
+                    document.getElementById('nicknameModal').style.display = 'none';
+                    document.querySelector('.header h1').textContent = `🏛️ ${data.user}의 기획 도우미`;
+                    userInput.focus();
+                } else {
+                    document.getElementById('nicknameInput').focus();
+                }
+            } catch (error) {
+                document.getElementById('nicknameInput').focus();
+            }
+        }
+        
+        checkUser();
     </script>
 </body>
 </html>

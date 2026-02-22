@@ -11,8 +11,11 @@ from flask_cors import CORS
 app = Flask(__name__)
 
 # 대화 저장 경로
-SAVE_DIR = os.path.expanduser("~/.openclaw/workspace/socratic-chat/conversations")
-os.makedirs(SAVE_DIR, exist_ok=True)
+SAVE_BASE_DIR = os.path.expanduser("~/.openclaw/workspace/socratic-chat/conversations")
+os.makedirs(SAVE_BASE_DIR, exist_ok=True)
+
+# 현재 사용자
+current_user = None
 CORS(app)
 
 # API 키/토큰 로드 (OAuth 우선)
@@ -56,9 +59,19 @@ current_session = {
     "started_at": None
 }
 
+def get_user_save_dir():
+    """현재 사용자의 저장 디렉토리"""
+    global current_user
+    if current_user:
+        user_dir = os.path.join(SAVE_BASE_DIR, current_user)
+    else:
+        user_dir = os.path.join(SAVE_BASE_DIR, "_anonymous")
+    os.makedirs(user_dir, exist_ok=True)
+    return user_dir
+
 def save_conversation(topic=None):
     """대화 내용을 파일로 저장"""
-    global current_session, conversation_history
+    global current_session, conversation_history, current_user
     
     if not conversation_history:
         return None
@@ -77,10 +90,11 @@ def save_conversation(topic=None):
         current_session["topic"] = first_user_msg.replace("\n", " ")
     
     filename = f"{current_session['id']}.json"
-    filepath = os.path.join(SAVE_DIR, filename)
+    filepath = os.path.join(get_user_save_dir(), filename)
     
     data = {
         "session_id": current_session["id"],
+        "user": current_user,
         "topic": current_session["topic"],
         "started_at": current_session["started_at"],
         "saved_at": datetime.now().isoformat(),
@@ -221,6 +235,27 @@ def call_claude(messages):
 def index():
     return render_template('index.html')
 
+@app.route('/set_user', methods=['POST'])
+def set_user():
+    """사용자 닉네임 설정"""
+    global current_user
+    nickname = request.json.get('nickname', '').strip()
+    if not nickname:
+        return jsonify({'error': 'Nickname required'}), 400
+    
+    # 안전한 폴더명으로 변환
+    safe_nickname = "".join(c for c in nickname if c.isalnum() or c in ('-', '_', ' ')).strip()
+    if not safe_nickname:
+        return jsonify({'error': 'Invalid nickname'}), 400
+    
+    current_user = safe_nickname
+    return jsonify({'status': 'ok', 'user': current_user})
+
+@app.route('/get_user', methods=['GET'])
+def get_user():
+    """현재 사용자 확인"""
+    return jsonify({'user': current_user})
+
 @app.route('/kanban')
 def kanban():
     return render_template('kanban.html')
@@ -326,25 +361,28 @@ def reset():
 
 @app.route('/conversations', methods=['GET'])
 def list_conversations():
-    """저장된 대화 목록"""
+    """저장된 대화 목록 (현재 사용자)"""
+    save_dir = get_user_save_dir()
     files = []
-    for filename in sorted(os.listdir(SAVE_DIR), reverse=True):
-        if filename.endswith('.json'):
-            filepath = os.path.join(SAVE_DIR, filename)
-            with open(filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                files.append({
-                    "id": data.get("session_id"),
-                    "topic": data.get("topic", "제목 없음")[:50],
-                    "started_at": data.get("started_at"),
-                    "message_count": data.get("message_count", 0)
-                })
+    
+    if os.path.exists(save_dir):
+        for filename in sorted(os.listdir(save_dir), reverse=True):
+            if filename.endswith('.json'):
+                filepath = os.path.join(save_dir, filename)
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    files.append({
+                        "id": data.get("session_id"),
+                        "topic": data.get("topic", "제목 없음")[:50],
+                        "started_at": data.get("started_at"),
+                        "message_count": data.get("message_count", 0)
+                    })
     return jsonify(files)
 
 @app.route('/conversations/<session_id>', methods=['GET'])
 def get_conversation(session_id):
     """특정 대화 내용 조회"""
-    filepath = os.path.join(SAVE_DIR, f"{session_id}.json")
+    filepath = os.path.join(get_user_save_dir(), f"{session_id}.json")
     if not os.path.exists(filepath):
         return jsonify({'error': 'Not found'}), 404
     
@@ -357,7 +395,7 @@ def load_conversation(session_id):
     """저장된 대화 불러오기"""
     global conversation_history, current_session
     
-    filepath = os.path.join(SAVE_DIR, f"{session_id}.json")
+    filepath = os.path.join(get_user_save_dir(), f"{session_id}.json")
     if not os.path.exists(filepath):
         return jsonify({'error': 'Not found'}), 404
     
