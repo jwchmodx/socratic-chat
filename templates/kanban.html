@@ -51,6 +51,7 @@
             overflow-x: auto;
             padding-bottom: 20px;
             min-height: calc(100vh - 140px);
+            margin-right: 360px; /* 채팅 사이드바 공간 */
         }
         
         .column {
@@ -273,12 +274,7 @@
     
     <!-- 열 추가 버튼 -->
     <div class="add-column" onclick="addColumn()">+ 새 열 추가</div>
-    
-    <!-- 채팅 토글 버튼 -->
-    <div class="chat-toggle" onclick="toggleChat()">💬</div>
-    
-    <!-- 채팅 사이드바 -->
-    <div class="chat-sidebar" id="chatSidebar">
+    <div class="chat-sidebar open" id="chatSidebar">
         <div class="chat-header">
             <h3>🏛️ 소크라테스</h3>
             <button onclick="toggleChat()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;">✕</button>
@@ -354,7 +350,7 @@
             e.target.classList.remove('drag-over');
         }
         
-        function drop(e) {
+        async function drop(e) {
             e.preventDefault();
             e.target.classList.remove('drag-over');
             
@@ -368,8 +364,42 @@
             }
             
             if (dropTarget && card) {
+                const itemText = card.querySelector('.card-text').textContent;
+                const columnName = dropTarget.closest('.column').querySelector('input')?.value || 
+                                   dropTarget.closest('.column').querySelector('.column-header').textContent.trim().replace(/\d+$/, '').trim();
+                
                 dropTarget.appendChild(card);
                 updateCounts();
+                
+                // 소크라테스에게 피드백 요청
+                if (columnName !== '📋 미분류') {
+                    askSocratesAboutMove(itemText, columnName);
+                }
+            }
+        }
+        
+        async function askSocratesAboutMove(item, column) {
+            const chatMessages = document.getElementById('chatMessages');
+            
+            // 로딩 표시
+            chatMessages.innerHTML += `<div class="message assistant" id="thinking">🤔 생각 중...</div>`;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: `[분류 중] "${item}"을(를) "${column}" 그룹에 넣었어. 이 분류에 대해 한 가지만 짧게 질문해줘.`
+                    })
+                });
+                const data = await response.json();
+                
+                document.getElementById('thinking')?.remove();
+                chatMessages.innerHTML += `<div class="message assistant">${data.response}</div>`;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (error) {
+                document.getElementById('thinking')?.remove();
             }
         }
         
@@ -381,7 +411,7 @@
             });
         }
         
-        function addColumn() {
+        async function addColumn() {
             const name = prompt('새 열 이름을 입력하세요:', '새 그룹');
             if (!name) return;
             
@@ -401,6 +431,28 @@
             `;
             
             document.getElementById('boardContainer').appendChild(column);
+            
+            // 소크라테스 반응
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML += `<div class="message assistant" id="thinking">🤔 생각 중...</div>`;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: `[열 추가] "${name}"이라는 그룹을 만들었어. 이 분류 기준에 대해 짧게 한 가지 질문해줘.`
+                    })
+                });
+                const data = await response.json();
+                
+                document.getElementById('thinking')?.remove();
+                chatMessages.innerHTML += `<div class="message assistant">${data.response}</div>`;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (error) {
+                document.getElementById('thinking')?.remove();
+            }
         }
         
         function renameColumn(colId, newName) {
@@ -463,6 +515,23 @@
         
         // 초기화
         loadItems();
+        
+        // 소크라테스 첫 인사
+        setTimeout(() => {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = `
+                <div class="message assistant">
+                    👋 좋아, STEP 2 분류 단계야!
+                    
+                    왼쪽에 나열한 항목들이 포스트잇으로 있어.
+                    
+                    <strong>"+ 새 열 추가"</strong>로 그룹을 만들고, 
+                    포스트잇을 드래그해서 분류해봐.
+                    
+                    분류할 때마다 내가 질문할게. 왜 그렇게 분류했는지 같이 생각해보자! 🤔
+                </div>
+            `;
+        }, 500);
     </script>
 </body>
 </html>
