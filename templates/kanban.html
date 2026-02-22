@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEP 2: 분류 - 칸반 보드</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 { font-size: 1.3rem; }
+        
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .header button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .header button:hover { background: rgba(255,255,255,0.3); }
+        .header button.primary { background: #28a745; }
+        
+        .board-container {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+            min-height: calc(100vh - 140px);
+        }
+        
+        .column {
+            background: #f4f5f7;
+            border-radius: 12px;
+            min-width: 280px;
+            max-width: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .column-header {
+            padding: 12px 16px;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .column-header input {
+            background: transparent;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            width: 100%;
+        }
+        
+        .column-header input:focus { outline: none; }
+        
+        .column-count {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+        
+        .column-body {
+            padding: 12px;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 200px;
+        }
+        
+        .column-body.drag-over {
+            background: #e3e6ff;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            cursor: grab;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        
+        .card-text {
+            font-size: 0.95rem;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .add-column {
+            background: rgba(255,255,255,0.1);
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 12px;
+            min-width: 280px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: rgba(255,255,255,0.6);
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+        
+        .add-column:hover {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .unassigned {
+            background: #fff3cd;
+        }
+        
+        .unassigned .column-header {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        /* 채팅 사이드바 */
+        .chat-sidebar {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 350px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.3s;
+            z-index: 100;
+        }
+        
+        .chat-sidebar.open { transform: translateX(0); }
+        
+        .chat-header {
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f8f9fa;
+        }
+        
+        .chat-input {
+            padding: 12px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        .chat-input button {
+            padding: 10px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .chat-toggle {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 99;
+            font-size: 1.5rem;
+        }
+        
+        .message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            max-width: 85%;
+        }
+        
+        .message.user {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            margin-left: auto;
+        }
+        
+        .message.assistant {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔀 STEP 2: 분류 - 포스트잇을 열에 드래그해서 분류하세요</h1>
+        <div class="header-buttons">
+            <button onclick="window.location.href='/'">← 채팅으로</button>
+            <button onclick="saveAndContinue()" class="primary">저장하고 STEP 3로 →</button>
+        </div>
+    </div>
+    
+    <div class="board-container" id="boardContainer">
+        <!-- 미분류 열 -->
+        <div class="column unassigned" id="unassigned">
+            <div class="column-header">
+                📋 미분류
+                <span class="column-count" id="unassignedCount">0</span>
+            </div>
+            <div class="column-body" data-column="unassigned" ondragover="allowDrop(event)" ondrop="drop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
+                <!-- 카드들이 여기에 추가됨 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 열 추가 버튼 -->
+    <div class="add-column" onclick="addColumn()">+ 새 열 추가</div>
+    
+    <!-- 채팅 토글 버튼 -->
+    <div class="chat-toggle" onclick="toggleChat()">💬</div>
+    
+    <!-- 채팅 사이드바 -->
+    <div class="chat-sidebar" id="chatSidebar">
+        <div class="chat-header">
+            <h3>🏛️ 소크라테스</h3>
+            <button onclick="toggleChat()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;">✕</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="질문하기..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button onclick="sendChat()">전송</button>
+        </div>
+    </div>
+    
+    <script>
+        let items = [];
+        let columns = ['unassigned'];
+        
+        // 페이지 로드 시 항목 가져오기
+        async function loadItems() {
+            try {
+                const response = await fetch('/get_items');
+                const data = await response.json();
+                items = data.items || [];
+                renderCards();
+            } catch (error) {
+                console.error('항목 로드 실패:', error);
+                // 테스트용 더미 데이터
+                items = [
+                    "아이디어 1: 목표 설정하기",
+                    "아이디어 2: 리소스 파악",
+                    "아이디어 3: 일정 계획",
+                    "아이디어 4: 팀원 역할 분담",
+                    "아이디어 5: 예산 책정"
+                ];
+                renderCards();
+            }
+        }
+        
+        function renderCards() {
+            const container = document.querySelector('#unassigned .column-body');
+            container.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.draggable = true;
+                card.id = `card-${index}`;
+                card.innerHTML = `<div class="card-text">${item}</div>`;
+                card.ondragstart = drag;
+                card.ondragend = dragEnd;
+                container.appendChild(card);
+            });
+            
+            updateCounts();
+        }
+        
+        function drag(e) {
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.id);
+        }
+        
+        function dragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+        
+        function allowDrop(e) {
+            e.preventDefault();
+        }
+        
+        function dragEnter(e) {
+            e.target.classList.add('drag-over');
+        }
+        
+        function dragLeave(e) {
+            e.target.classList.remove('drag-over');
+        }
+        
+        function drop(e) {
+            e.preventDefault();
+            e.target.classList.remove('drag-over');
+            
+            const cardId = e.dataTransfer.getData('text/plain');
+            const card = document.getElementById(cardId);
+            
+            // 열의 body에 드롭
+            let dropTarget = e.target;
+            if (!dropTarget.classList.contains('column-body')) {
+                dropTarget = dropTarget.closest('.column-body');
+            }
+            
+            if (dropTarget && card) {
+                dropTarget.appendChild(card);
+                updateCounts();
+            }
+        }
+        
+        function updateCounts() {
+            document.querySelectorAll('.column').forEach(col => {
+                const count = col.querySelector('.column-body').children.length;
+                const countEl = col.querySelector('.column-count');
+                if (countEl) countEl.textContent = count;
+            });
+        }
+        
+        function addColumn() {
+            const name = prompt('새 열 이름을 입력하세요:', '새 그룹');
+            if (!name) return;
+            
+            const colId = `col-${Date.now()}`;
+            columns.push(colId);
+            
+            const column = document.createElement('div');
+            column.className = 'column';
+            column.id = colId;
+            column.innerHTML = `
+                <div class="column-header">
+                    <input type="text" value="${name}" onchange="renameColumn('${colId}', this.value)">
+                    <span class="column-count">0</span>
+                </div>
+                <div class="column-body" data-column="${colId}" ondragover="allowDrop(event)" ondrop="drop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
+                </div>
+            `;
+            
+            document.getElementById('boardContainer').appendChild(column);
+        }
+        
+        function renameColumn(colId, newName) {
+            // 열 이름 변경됨
+        }
+        
+        function toggleChat() {
+            document.getElementById('chatSidebar').classList.toggle('open');
+        }
+        
+        async function sendChat() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            input.value = '';
+            
+            // 사용자 메시지 표시
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML += `<div class="message user">${message}</div>`;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // AI 응답 요청
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await response.json();
+                chatMessages.innerHTML += `<div class="message assistant">${data.response}</div>`;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (error) {
+                chatMessages.innerHTML += `<div class="message assistant">오류가 발생했습니다.</div>`;
+            }
+        }
+        
+        async function saveAndContinue() {
+            // 현재 분류 상태 수집
+            const classification = {};
+            document.querySelectorAll('.column').forEach(col => {
+                const colName = col.querySelector('input')?.value || col.querySelector('.column-header').textContent.trim();
+                const cards = Array.from(col.querySelectorAll('.card-text')).map(c => c.textContent);
+                if (cards.length > 0) {
+                    classification[colName] = cards;
+                }
+            });
+            
+            try {
+                await fetch('/save_classification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ classification })
+                });
+                window.location.href = '/?step=3';
+            } catch (error) {
+                alert('저장 실패');
+            }
+        }
+        
+        // 초기화
+        loadItems();
+    </script>
+</body>
+</html>

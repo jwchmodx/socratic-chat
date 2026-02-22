@@ -375,39 +375,48 @@
         async function goToStep(step) {
             const btn = step === 2 ? document.getElementById('toStep2Btn') : document.getElementById('toStep3Btn');
             btn.disabled = true;
-            btn.textContent = '이동 중...';
+            btn.textContent = '항목 추출 중...';
             
-            addMessage(step === 2 ? '분류 단계로 넘어가자!' : '재배열 단계로 넘어가자!', 'user');
-            addTypingIndicator();
-            
-            try {
-                const response = await fetch('/next_step', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ step: step })
-                });
-                
-                const data = await response.json();
-                removeTypingIndicator();
-                
-                if (data.error) {
-                    addMessage('오류: ' + data.error, 'assistant');
-                } else {
-                    addMessage(data.response, 'assistant');
-                    currentStep = step;
-                    updateStepIndicator(step);
-                }
-            } catch (error) {
-                removeTypingIndicator();
-                addMessage('연결 오류가 발생했습니다.', 'assistant');
-            }
-            
-            btn.disabled = false;
             if (step === 2) {
-                btn.textContent = '✓ STEP 2 완료';
-                btn.style.background = '#28a745';
-                document.getElementById('toStep3Btn').style.display = 'block';
+                // STEP 2: 칸반 보드로 이동
+                try {
+                    // 먼저 항목 추출
+                    await fetch('/extract_items', { method: 'POST' });
+                    // 칸반 페이지로 이동
+                    window.location.href = '/kanban';
+                } catch (error) {
+                    alert('항목 추출 실패');
+                    btn.disabled = false;
+                    btn.textContent = '▶ STEP 2: 분류로 이동';
+                }
             } else {
+                // STEP 3: 기존 방식
+                addMessage('재배열 단계로 넘어가자!', 'user');
+                addTypingIndicator();
+                
+                try {
+                    const response = await fetch('/next_step', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ step: step })
+                    });
+                    
+                    const data = await response.json();
+                    removeTypingIndicator();
+                    
+                    if (data.error) {
+                        addMessage('오류: ' + data.error, 'assistant');
+                    } else {
+                        addMessage(data.response, 'assistant');
+                        currentStep = step;
+                        updateStepIndicator(step);
+                    }
+                } catch (error) {
+                    removeTypingIndicator();
+                    addMessage('연결 오류가 발생했습니다.', 'assistant');
+                }
+                
+                btn.disabled = false;
                 btn.textContent = '✓ STEP 3 완료';
                 btn.style.background = '#28a745';
             }

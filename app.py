@@ -221,6 +221,67 @@ def call_claude(messages):
 def index():
     return render_template('index.html')
 
+@app.route('/kanban')
+def kanban():
+    return render_template('kanban.html')
+
+# 대화에서 나열된 항목 추출
+collected_items = []
+
+@app.route('/get_items', methods=['GET'])
+def get_items():
+    """대화에서 추출된 항목들 반환"""
+    return jsonify({'items': collected_items})
+
+@app.route('/extract_items', methods=['POST'])
+def extract_items():
+    """대화에서 항목 추출 (Claude에게 요청)"""
+    global collected_items, conversation_history
+    
+    if not conversation_history:
+        return jsonify({'items': []})
+    
+    # Claude에게 항목 추출 요청
+    extract_prompt = """지금까지 대화에서 나열된 모든 항목/아이디어/할 일을 추출해서 
+JSON 배열로만 반환해줘. 다른 설명 없이 JSON 배열만.
+예: ["항목1", "항목2", "항목3"]"""
+    
+    temp_history = conversation_history + [{"role": "user", "content": extract_prompt}]
+    
+    try:
+        response = call_claude(temp_history)
+        # JSON 추출
+        import re
+        match = re.search(r'\[.*\]', response, re.DOTALL)
+        if match:
+            collected_items = json.loads(match.group())
+        return jsonify({'items': collected_items})
+    except Exception as e:
+        return jsonify({'error': str(e), 'items': []}), 500
+
+@app.route('/save_classification', methods=['POST'])
+def save_classification():
+    """분류 결과 저장"""
+    global conversation_history
+    
+    classification = request.json.get('classification', {})
+    
+    # 분류 결과를 대화에 추가
+    classification_text = "분류 결과:\n"
+    for group, items in classification.items():
+        classification_text += f"\n[{group}]\n"
+        for item in items:
+            classification_text += f"  - {item}\n"
+    
+    conversation_history.append({
+        "role": "user",
+        "content": f"[분류 완료]\n{classification_text}"
+    })
+    
+    save_conversation()
+    
+    return jsonify({'status': 'ok'})
+
 @app.route('/chat', methods=['POST'])
 def chat():
     global conversation_history
