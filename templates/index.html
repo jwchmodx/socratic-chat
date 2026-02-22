@@ -44,10 +44,11 @@
             font-weight: 600;
         }
         
-        .header button {
+        .header button, .header a {
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
+            text-decoration: none;
             padding: 8px 16px;
             border-radius: 8px;
             cursor: pointer;
@@ -201,6 +202,7 @@
     <div class="container">
         <div class="header">
             <h1>🏛️ 소크라테스식 기획 도우미</h1>
+            <button onclick="showHistory()" style="margin-right: 8px;">📚 기록</button>
             <button onclick="resetChat()">새 대화</button>
         </div>
         
@@ -417,6 +419,73 @@
                 if (i < step) el.style.background = '#28a745';
             });
             document.getElementById('step' + step).classList.add('active');
+        }
+        
+        async function showHistory() {
+            try {
+                const response = await fetch('/conversations');
+                const conversations = await response.json();
+                
+                if (conversations.length === 0) {
+                    alert('저장된 대화가 없습니다.');
+                    return;
+                }
+                
+                let html = '<div style="max-height: 400px; overflow-y: auto;">';
+                conversations.forEach(conv => {
+                    const date = new Date(conv.started_at).toLocaleString('ko-KR');
+                    html += `
+                        <div style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer;" 
+                             onclick="loadConversation('${conv.id}')">
+                            <strong>${conv.topic || '제목 없음'}</strong><br>
+                            <small style="color: #666;">${date} · ${conv.message_count}개 메시지</small>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                // 간단한 모달 표시
+                const modal = document.createElement('div');
+                modal.id = 'historyModal';
+                modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:1000;';
+                modal.innerHTML = `
+                    <div style="background:white;border-radius:16px;width:90%;max-width:500px;max-height:80vh;overflow:hidden;">
+                        <div style="padding:16px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;display:flex;justify-content:space-between;align-items:center;">
+                            <h3>📚 대화 기록</h3>
+                            <button onclick="document.getElementById('historyModal').remove()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;">✕</button>
+                        </div>
+                        ${html}
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+            } catch (error) {
+                alert('기록을 불러오는데 실패했습니다.');
+            }
+        }
+        
+        async function loadConversation(sessionId) {
+            try {
+                const response = await fetch(`/conversations/${sessionId}/load`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    // 모달 닫기
+                    document.getElementById('historyModal')?.remove();
+                    
+                    // 채팅 영역 초기화
+                    chatMessages.innerHTML = '';
+                    
+                    // 메시지 복원
+                    data.messages.forEach(msg => {
+                        addMessage(msg.content, msg.role);
+                    });
+                    
+                    alert('대화를 불러왔습니다!');
+                }
+            } catch (error) {
+                alert('대화를 불러오는데 실패했습니다.');
+            }
         }
         
         userInput.focus();

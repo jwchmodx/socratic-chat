@@ -4,10 +4,15 @@
 import os
 import json
 import httpx
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
+
+# 대화 저장 경로
+SAVE_DIR = os.path.expanduser("~/.openclaw/workspace/socratic-chat/conversations")
+os.makedirs(SAVE_DIR, exist_ok=True)
 CORS(app)
 
 # API 키/토큰 로드 (OAuth 우선)
@@ -43,6 +48,50 @@ def get_auth():
 
 TOKEN, IS_OAUTH = get_auth()
 print(f"🔐 Auth mode: {'OAuth' if IS_OAUTH else 'API Key'}")
+
+# 현재 세션 정보
+current_session = {
+    "id": None,
+    "topic": None,
+    "started_at": None
+}
+
+def save_conversation(topic=None):
+    """대화 내용을 파일로 저장"""
+    global current_session, conversation_history
+    
+    if not conversation_history:
+        return None
+    
+    # 세션 ID 생성
+    if not current_session["id"]:
+        current_session["id"] = datetime.now().strftime("%Y%m%d_%H%M%S")
+        current_session["started_at"] = datetime.now().isoformat()
+    
+    # 주제 추출 (첫 대화에서)
+    if not current_session["topic"] and topic:
+        current_session["topic"] = topic
+    elif not current_session["topic"] and len(conversation_history) >= 2:
+        # 첫 번째 사용자 메시지에서 주제 추출
+        first_user_msg = conversation_history[0]["content"][:50]
+        current_session["topic"] = first_user_msg.replace("\n", " ")
+    
+    filename = f"{current_session['id']}.json"
+    filepath = os.path.join(SAVE_DIR, filename)
+    
+    data = {
+        "session_id": current_session["id"],
+        "topic": current_session["topic"],
+        "started_at": current_session["started_at"],
+        "saved_at": datetime.now().isoformat(),
+        "message_count": len(conversation_history),
+        "messages": conversation_history
+    }
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    
+    return filepath
 
 SYSTEM_PROMPT = """# 소크라테스식 기획 도우미
 
@@ -192,6 +241,9 @@ def chat():
             "content": assistant_message
         })
         
+        # 매 대화마다 자동 저장
+        save_conversation()
+        
         return jsonify({'response': assistant_message})
     
     except Exception as e:
@@ -199,9 +251,66 @@ def chat():
 
 @app.route('/reset', methods=['POST'])
 def reset():
-    global conversation_history
+    global conversation_history, current_session
+    
+    # 기존 대화 저장
+    if conversation_history:
+        save_conversation()
+    
+    # 초기화
     conversation_history = []
+    current_session = {"id": None, "topic": None, "started_at": None}
+    
     return jsonify({'status': 'ok'})
+
+@app.route('/conversations', methods=['GET'])
+def list_conversations():
+    """저장된 대화 목록"""
+    files = []
+    for filename in sorted(os.listdir(SAVE_DIR), reverse=True):
+        if filename.endswith('.json'):
+            filepath = os.path.join(SAVE_DIR, filename)
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                files.append({
+                    "id": data.get("session_id"),
+                    "topic": data.get("topic", "제목 없음")[:50],
+                    "started_at": data.get("started_at"),
+                    "message_count": data.get("message_count", 0)
+                })
+    return jsonify(files)
+
+@app.route('/conversations/<session_id>', methods=['GET'])
+def get_conversation(session_id):
+    """특정 대화 내용 조회"""
+    filepath = os.path.join(SAVE_DIR, f"{session_id}.json")
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Not found'}), 404
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return jsonify(data)
+
+@app.route('/conversations/<session_id>/load', methods=['POST'])
+def load_conversation(session_id):
+    """저장된 대화 불러오기"""
+    global conversation_history, current_session
+    
+    filepath = os.path.join(SAVE_DIR, f"{session_id}.json")
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Not found'}), 404
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    conversation_history = data.get("messages", [])
+    current_session = {
+        "id": data.get("session_id"),
+        "topic": data.get("topic"),
+        "started_at": data.get("started_at")
+    }
+    
+    return jsonify({'status': 'ok', 'messages': conversation_history})
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
@@ -218,6 +327,9 @@ def summarize():
             "role": "assistant",
             "content": assistant_message
         })
+        
+        # 저장
+        save_conversation()
         
         return jsonify({'response': assistant_message})
     
@@ -248,6 +360,9 @@ def next_step():
             "role": "assistant",
             "content": assistant_message
         })
+        
+        # 저장
+        save_conversation()
         
         return jsonify({'response': assistant_message, 'step': step})
     
