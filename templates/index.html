@@ -205,9 +205,18 @@
         </div>
         
         <div class="steps-indicator">
-            <span class="step">1. 나열</span>
-            <span class="step">2. 분류</span>
-            <span class="step">3. 재배열</span>
+            <span class="step active" id="step1">1. 나열</span>
+            <span class="step" id="step2">2. 분류</span>
+            <span class="step" id="step3">3. 재배열</span>
+        </div>
+        
+        <div class="step-buttons" style="display: flex; gap: 8px; padding: 8px 24px; background: #f8f8f8; border-bottom: 1px solid #eee;">
+            <button onclick="goToStep(2)" id="toStep2Btn" style="flex:1; padding: 8px; border: none; border-radius: 8px; background: #667eea; color: white; cursor: pointer; font-weight: 600;">
+                ▶ STEP 2: 분류로 이동
+            </button>
+            <button onclick="goToStep(3)" id="toStep3Btn" style="flex:1; padding: 8px; border: none; border-radius: 8px; background: #764ba2; color: white; cursor: pointer; font-weight: 600; display: none;">
+                ▶ STEP 3: 재배열로 이동
+            </button>
         </div>
         
         <div class="chat-container" id="chatContainer">
@@ -229,6 +238,7 @@
                 onkeydown="handleKeyDown(event)"
             ></textarea>
             <button onclick="sendMessage()" id="sendBtn">보내기</button>
+            <button onclick="summarize()" id="sumBtn" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">📊 정리</button>
         </div>
     </div>
     
@@ -327,6 +337,86 @@
                 event.preventDefault();
                 sendMessage();
             }
+        }
+        
+        async function summarize() {
+            const sumBtn = document.getElementById('sumBtn');
+            sumBtn.disabled = true;
+            
+            addMessage("정리해줘", 'user');
+            addTypingIndicator();
+            
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                removeTypingIndicator();
+                
+                if (data.error) {
+                    addMessage('오류: ' + data.error, 'assistant');
+                } else {
+                    addMessage(data.response, 'assistant');
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage('연결 오류가 발생했습니다.', 'assistant');
+            }
+            
+            sumBtn.disabled = false;
+        }
+        
+        let currentStep = 1;
+        
+        async function goToStep(step) {
+            const btn = step === 2 ? document.getElementById('toStep2Btn') : document.getElementById('toStep3Btn');
+            btn.disabled = true;
+            btn.textContent = '이동 중...';
+            
+            addMessage(step === 2 ? '분류 단계로 넘어가자!' : '재배열 단계로 넘어가자!', 'user');
+            addTypingIndicator();
+            
+            try {
+                const response = await fetch('/next_step', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ step: step })
+                });
+                
+                const data = await response.json();
+                removeTypingIndicator();
+                
+                if (data.error) {
+                    addMessage('오류: ' + data.error, 'assistant');
+                } else {
+                    addMessage(data.response, 'assistant');
+                    currentStep = step;
+                    updateStepIndicator(step);
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage('연결 오류가 발생했습니다.', 'assistant');
+            }
+            
+            btn.disabled = false;
+            if (step === 2) {
+                btn.textContent = '✓ STEP 2 완료';
+                btn.style.background = '#28a745';
+                document.getElementById('toStep3Btn').style.display = 'block';
+            } else {
+                btn.textContent = '✓ STEP 3 완료';
+                btn.style.background = '#28a745';
+            }
+        }
+        
+        function updateStepIndicator(step) {
+            document.querySelectorAll('.step').forEach((el, i) => {
+                el.classList.remove('active');
+                if (i < step) el.style.background = '#28a745';
+            });
+            document.getElementById('step' + step).classList.add('active');
         }
         
         userInput.focus();
