@@ -549,6 +549,15 @@
                     document.getElementById('nicknameModal').style.display = 'none';
                     document.querySelector('.header h1').textContent = `🏛️ ${data.user}의 기획 도우미`;
                     userInput.focus();
+                    
+                    // 칸반에서 돌아온 경우
+                    if (window.location.search.includes('fromKanban=true')) {
+                        // URL 파라미터 제거
+                        window.history.replaceState({}, '', '/');
+                        
+                        // 소크라테스 응답 추가
+                        addMessage('좋아! 더 생각난 게 있구나. 뭐가 떠올랐어?', 'assistant');
+                    }
                 } else {
                     document.getElementById('nicknameInput').focus();
                 }

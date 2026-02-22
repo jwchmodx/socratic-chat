@@ -254,7 +254,7 @@
     <div class="header">
         <h1>🔀 STEP 2: 분류 - 포스트잇을 열에 드래그해서 분류하세요</h1>
         <div class="header-buttons">
-            <button onclick="window.location.href='/'">← 채팅으로</button>
+            <button onclick="goBackToStep1()">← STEP 1로 돌아가기</button>
             <button onclick="saveAndContinue()" class="primary">저장하고 STEP 3로 →</button>
         </div>
     </div>
@@ -511,6 +511,30 @@
             } catch (error) {
                 alert('저장 실패');
             }
+        }
+        
+        async function goBackToStep1() {
+            // 현재 분류 상태 임시 저장
+            const classification = {};
+            document.querySelectorAll('.column').forEach(col => {
+                const colName = col.querySelector('input')?.value || 
+                               col.querySelector('.column-header').textContent.trim().replace(/\d+$/, '').trim();
+                const cards = Array.from(col.querySelectorAll('.card-text')).map(c => c.textContent);
+                if (cards.length > 0) {
+                    classification[colName] = cards;
+                }
+            });
+            
+            // 대화에 돌아간다는 메시지 추가
+            await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    message: '[STEP 1로 돌아감] 분류하다가 더 나열할 게 생각나서 돌아왔어.'
+                })
+            });
+            
+            window.location.href = '/?fromKanban=true';
         }
         
         // 초기화
