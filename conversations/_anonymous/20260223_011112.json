@@ -1,0 +1,18 @@
+{
+  "session_id": "20260223_011112",
+  "user": null,
+  "topic": "[STEP 1로 돌아감]",
+  "started_at": "2026-02-23T01:11:12.430132",
+  "saved_at": "2026-02-23T01:11:12.430175",
+  "message_count": 2,
+  "messages": [
+    {
+      "role": "user",
+      "content": "[STEP 1로 돌아감]"
+    },
+    {
+      "role": "assistant",
+      "content": "🤔 어떤 문제나 주제를 다루고 싶어?"
+    }
+  ]
+}

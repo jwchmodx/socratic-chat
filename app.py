@@ -317,6 +317,31 @@ def save_classification():
     
     return jsonify({'status': 'ok'})
 
+@app.route('/save_kanban', methods=['POST'])
+def save_kanban():
+    """칸반 보드 상태 저장"""
+    global current_user
+    
+    kanban_data = request.json
+    
+    # 사용자별 칸반 상태 저장
+    kanban_file = os.path.join(get_user_save_dir(), '_kanban_state.json')
+    with open(kanban_file, 'w', encoding='utf-8') as f:
+        json.dump(kanban_data, f, ensure_ascii=False, indent=2)
+    
+    return jsonify({'status': 'ok'})
+
+@app.route('/load_kanban', methods=['GET'])
+def load_kanban():
+    """칸반 보드 상태 불러오기"""
+    kanban_file = os.path.join(get_user_save_dir(), '_kanban_state.json')
+    
+    if os.path.exists(kanban_file):
+        with open(kanban_file, 'r', encoding='utf-8') as f:
+            return jsonify(json.load(f))
+    
+    return jsonify({'columns': [], 'cards': {}})
+
 @app.route('/chat', methods=['POST'])
 def chat():
     global conversation_history
