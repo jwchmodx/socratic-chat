@@ -555,17 +555,40 @@
                     
                     // 칸반에서 돌아온 경우
                     if (window.location.search.includes('fromKanban=true')) {
-                        // URL 파라미터 제거
                         window.history.replaceState({}, '', '/');
-                        
-                        // 소크라테스 응답 추가
                         addMessage('좋아! 더 생각난 게 있구나. 뭐가 떠올랐어?', 'assistant');
+                    } else {
+                        // 마지막 대화 자동 불러오기
+                        await loadLastConversation();
                     }
                 } else {
                     document.getElementById('nicknameInput').focus();
                 }
             } catch (error) {
                 document.getElementById('nicknameInput').focus();
+            }
+        }
+        
+        async function loadLastConversation() {
+            try {
+                const response = await fetch('/conversations');
+                const conversations = await response.json();
+                
+                if (conversations.length > 0) {
+                    // 가장 최근 대화 불러오기
+                    const latest = conversations[0];
+                    const loadRes = await fetch(`/conversations/${latest.id}/load`, { method: 'POST' });
+                    const data = await loadRes.json();
+                    
+                    if (data.status === 'ok' && data.messages.length > 0) {
+                        chatContainer.innerHTML = '';
+                        data.messages.forEach(msg => {
+                            addMessage(msg.content, msg.role);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('마지막 대화 불러오기 실패:', error);
             }
         }
         
