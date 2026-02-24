@@ -9,13 +9,13 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: #000;
             min-height: 100vh;
             padding: 20px;
         }
         
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #222;
             color: white;
             padding: 14px 20px;
             border-radius: 12px;
@@ -43,7 +43,7 @@
         }
         
         .header button:hover { background: rgba(255,255,255,0.3); }
-        .header button.primary { background: #28a745; }
+        .header button.primary { background: #555; }
         
         .main-container {
             display: flex;
@@ -61,10 +61,10 @@
         }
         
         .column {
-            background: #f4f5f7;
+            background: #f5f5f5;
             border-radius: 10px;
-            min-width: 240px;
-            max-width: 240px;
+            min-width: 300px;
+            max-width: 300px;
             display: flex;
             flex-direction: column;
             max-height: 100%;
@@ -97,8 +97,19 @@
         
         .column-header input::placeholder { color: #999; }
         
+        .column-delete {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 2px 6px;
+            margin-left: 4px;
+        }
+        .column-delete:hover { color: #666; }
+        
         .column-count {
-            background: #667eea;
+            background: #333;
             color: white;
             padding: 2px 8px;
             border-radius: 10px;
@@ -114,7 +125,7 @@
             min-height: 80px;
         }
         
-        .column-body.drag-over { background: #e3e6ff; }
+        .column-body.drag-over { background: #ddd; }
         
         .column-footer {
             padding: 8px;
@@ -132,7 +143,7 @@
             text-align: left;
         }
         
-        .add-card-btn:hover { color: #667eea; }
+        .add-card-btn:hover { color: #333; }
         
         .card {
             background: white;
@@ -144,7 +155,35 @@
             font-size: 0.85rem;
             line-height: 1.4;
             word-break: keep-all;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 6px;
         }
+        
+        .card.dragging {
+            opacity: 0.5;
+        }
+        
+        /* 드래그 중일 때 다른 카드들이 드롭을 방해하지 않도록 */
+        .column-body.drag-over .card {
+            pointer-events: none;
+        }
+        
+        .card-text { flex: 1; }
+        
+        .card-delete {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 0 2px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        
+        .card-delete:hover { color: #666; }
         
         .card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
         .card.dragging { opacity: 0.5; }
@@ -170,8 +209,8 @@
             border-color: rgba(255,255,255,0.4);
         }
         
-        .unassigned { background: #fff8e1; }
-        .unassigned .column-header { background: #ffecb3; }
+        .unassigned { background: #eee; }
+        .unassigned .column-header { background: #ddd; }
         
         /* 채팅 사이드바 */
         .chat-sidebar {
@@ -194,7 +233,7 @@
         
         .chat-header {
             padding: 12px 14px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: #333;
             color: white;
             display: flex;
             justify-content: space-between;
@@ -229,7 +268,7 @@
         
         .chat-input button {
             padding: 8px 12px;
-            background: #667eea;
+            background: #333;
             color: white;
             border: none;
             border-radius: 6px;
@@ -246,7 +285,7 @@
         }
         
         .message.user {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: #333;
             color: white;
             margin-left: auto;
         }
@@ -262,7 +301,7 @@
             bottom: 20px;
             width: 50px;
             height: 50px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: #333;
             border: none;
             border-radius: 50%;
             color: white;
@@ -277,11 +316,13 @@
 </head>
 <body>
     <div class="header">
-        <h1>🔀 STEP 2: 분류 - 포스트잇을 열에 드래그해서 분류하세요</h1>
+        <h1>🔀 STEP 2: 분류 <span id="projectName" style="font-size:0.8rem;opacity:0.7;"></span></h1>
         <div class="header-buttons">
             <button onclick="goBackToStep1()">← STEP 1</button>
             <button onclick="toggleChat()">💬</button>
+            <button id="reviewBtn" onclick="reviewClassification()" style="background:#444;">🔍 분류 검토</button>
             <button onclick="saveAndContinue()" class="primary">저장 & STEP 3 →</button>
+            <button onclick="location.href='/logout'" style="background:#666;margin-left:8px;">🚪</button>
         </div>
     </div>
     
@@ -304,6 +345,7 @@
                 <div class="column-header">
                     <input type="text" placeholder="열 이름..." onchange="saveState()">
                     <span class="column-count">0</span>
+                    <button class="column-delete" onclick="deleteColumn('col-1')" title="열 삭제">✕</button>
                 </div>
                 <div class="column-body" data-column="col-1"></div>
                 <div class="column-footer">
@@ -315,6 +357,7 @@
                 <div class="column-header">
                     <input type="text" placeholder="열 이름..." onchange="saveState()">
                     <span class="column-count">0</span>
+                    <button class="column-delete" onclick="deleteColumn('col-2')" title="열 삭제">✕</button>
                 </div>
                 <div class="column-body" data-column="col-2"></div>
                 <div class="column-footer">
@@ -326,6 +369,7 @@
                 <div class="column-header">
                     <input type="text" placeholder="열 이름..." onchange="saveState()">
                     <span class="column-count">0</span>
+                    <button class="column-delete" onclick="deleteColumn('col-3')" title="열 삭제">✕</button>
                 </div>
                 <div class="column-body" data-column="col-3"></div>
                 <div class="column-footer">
@@ -358,15 +402,21 @@
         
         // 드래그 앤 드롭 설정
         function setupDragDrop() {
-            document.querySelectorAll('.column-body').forEach(body => {
-                body.ondragover = (e) => { e.preventDefault(); };
-                body.ondragenter = (e) => { e.target.classList.add('drag-over'); };
-                body.ondragleave = (e) => { 
-                    if (e.target.classList.contains('column-body')) {
-                        e.target.classList.remove('drag-over'); 
+            // 열 전체에 이벤트 설정 (헤더, 카드 위에 드롭해도 인식)
+            document.querySelectorAll('.column').forEach(col => {
+                col.ondragover = (e) => { e.preventDefault(); };
+                col.ondragenter = (e) => { 
+                    const body = col.querySelector('.column-body');
+                    if (body) body.classList.add('drag-over'); 
+                };
+                col.ondragleave = (e) => { 
+                    // 열 밖으로 나갈 때만 하이라이트 제거
+                    if (!col.contains(e.relatedTarget)) {
+                        const body = col.querySelector('.column-body');
+                        if (body) body.classList.remove('drag-over'); 
                     }
                 };
-                body.ondrop = drop;
+                col.ondrop = drop;
             });
         }
         
@@ -375,37 +425,53 @@
             card.className = 'card';
             card.draggable = true;
             card.id = id || `card-${cardIdCounter++}`;
-            card.textContent = text;
-            card.ondragstart = (e) => {
-                e.target.classList.add('dragging');
-                e.dataTransfer.setData('text/plain', e.target.id);
+            
+            const textSpan = document.createElement('span');
+            textSpan.className = 'card-text';
+            textSpan.textContent = text;
+            card.appendChild(textSpan);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'card-delete';
+            deleteBtn.textContent = '✕';
+            deleteBtn.title = '삭제';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                card.remove();
+                updateCounts();
+                saveState();
             };
-            card.ondragend = (e) => e.target.classList.remove('dragging');
+            card.appendChild(deleteBtn);
+            
+            card.ondragstart = (e) => {
+                card.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', card.id);
+            };
+            card.ondragend = (e) => card.classList.remove('dragging');
             return card;
         }
         
         function drop(e) {
             e.preventDefault();
             let target = e.target;
+            
+            // 열 어디에 드롭해도 인식되도록
             if (!target.classList.contains('column-body')) {
-                target = target.closest('.column-body');
+                // 열 내부의 아무 곳이나 드롭해도 column-body 찾기
+                const column = target.closest('.column');
+                if (column) {
+                    target = column.querySelector('.column-body');
+                }
             }
-            if (target) {
+            
+            if (target && target.classList.contains('column-body')) {
                 target.classList.remove('drag-over');
                 const cardId = e.dataTransfer.getData('text/plain');
                 const card = document.getElementById(cardId);
                 if (card) {
-                    const itemText = card.textContent;
-                    const col = target.closest('.column');
-                    const colName = col.querySelector('input')?.value || '미분류';
-                    
                     target.appendChild(card);
                     updateCounts();
                     saveState();
-                    
-                    if (!col.classList.contains('unassigned') && colName) {
-                        askSocrates(`"${itemText}"을 "${colName || '새 열'}"에 넣었어.`);
-                    }
                 }
             }
         }
@@ -430,6 +496,7 @@
                 <div class="column-header">
                     <input type="text" placeholder="열 이름..." onchange="saveState()">
                     <span class="column-count">0</span>
+                    <button class="column-delete" onclick="deleteColumn('${colId}')" title="열 삭제">✕</button>
                 </div>
                 <div class="column-body" data-column="${colId}"></div>
                 <div class="column-footer">
@@ -439,6 +506,20 @@
             
             document.querySelector('.add-column').before(column);
             setupDragDrop();
+            saveState();
+        }
+        
+        function deleteColumn(colId) {
+            const col = document.getElementById(colId);
+            if (!col) return;
+            
+            const cards = col.querySelectorAll('.card');
+            if (cards.length > 0) {
+                if (!confirm(`이 열에 ${cards.length}개의 카드가 있습니다. 삭제하시겠습니까?`)) {
+                    return;
+                }
+            }
+            col.remove();
             saveState();
         }
         
@@ -455,7 +536,7 @@
         
         async function askSocrates(msg) {
             const chat = document.getElementById('chatMessages');
-            if (document.getElementById('chatSidebar').classList.contains('hidden')) return;
+            console.log('askSocrates 호출, 메시지:', msg.substring(0, 100) + '...');
             
             try {
                 const res = await fetch('/chat', {
@@ -463,10 +544,110 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({message: `[분류] ${msg}`})
                 });
+                console.log('API 응답 받음:', res.status);
                 const data = await res.json();
-                chat.innerHTML += `<div class="message assistant">${data.response}</div>`;
+                console.log('응답 데이터:', data);
+                chat.innerHTML += `<div class="message assistant">${parseMarkdown(data.response)}</div>`;
                 chat.scrollTop = chat.scrollHeight;
-            } catch (e) {}
+            } catch (e) {
+                console.error('askSocrates 에러:', e);
+                chat.innerHTML += `<div class="message assistant">오류: ${e.message}</div>`;
+            }
+        }
+        
+        // 간단한 마크다운 파싱
+        function parseMarkdown(text) {
+            return text
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // **bold**
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')              // *italic*
+                .replace(/\n/g, '<br>');                           // 줄바꿈
+        }
+        
+        async function reviewClassification() {
+            console.log('reviewClassification 호출됨!');
+            
+            // 버튼 로딩 상태
+            const btn = document.getElementById('reviewBtn');
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ 검토 중...';
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            
+            // 채팅창 열기
+            document.getElementById('chatSidebar').classList.remove('hidden');
+            
+            // 로딩 표시
+            const chat = document.getElementById('chatMessages');
+            console.log('chat element:', chat);
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant';
+            loadingDiv.id = 'loadingMsg';
+            loadingDiv.textContent = '🔄 분류 검토 중...';
+            chat.appendChild(loadingDiv);
+            chat.scrollTop = chat.scrollHeight;
+            console.log('로딩 메시지 추가됨');
+            
+            // DOM 업데이트가 렌더링될 시간 주기
+            await new Promise(r => setTimeout(r, 50));
+            
+            // 현재 분류 상태 수집
+            const columns = [];
+            let colIndex = 1;
+            
+            document.querySelectorAll('.column').forEach(col => {
+                const input = col.querySelector('input');
+                let name;
+                if (col.id === 'unassigned') {
+                    name = '미분류';
+                } else {
+                    name = input?.value?.trim() || `그룹${colIndex++}`;
+                }
+                
+                // column-body 안의 카드들 찾기
+                const body = col.querySelector('.column-body');
+                const cardElements = body ? body.querySelectorAll('.card') : [];
+                const cards = Array.from(cardElements)
+                    .map(c => {
+                        const textEl = c.querySelector('.card-text');
+                        return textEl ? textEl.textContent.trim() : c.textContent.replace('✕', '').trim();
+                    })
+                    .filter(t => t.length > 0);
+                
+                console.log(`Column "${name}": ${cards.length} cards`, cards);
+                
+                if (cards.length > 0) {
+                    columns.push({ name, cards, isUnassigned: col.id === 'unassigned' });
+                }
+            });
+            
+            console.log('Total columns with cards:', columns);
+            
+            // 분류 요약 메시지 생성
+            let summary = '현재 분류 상태:\n';
+            
+            columns.forEach(col => {
+                if (!col.isUnassigned) {
+                    summary += `\n**[${col.name}]**: ${col.cards.join(', ')}`;
+                }
+            });
+            
+            const unassigned = columns.find(c => c.isUnassigned);
+            if (unassigned && unassigned.cards.length > 0) {
+                summary += `\n\n**[미분류]** (${unassigned.cards.length}개): ${unassigned.cards.join(', ')}`;
+            }
+            
+            summary += '\n\n[STEP 2 분류 검토 요청]\n분류에 대해서만 질문해줘. 한 번에 질문 1개만!\n예시: "왜 이걸 이 그룹에 넣었어?", "이 그룹의 기준이 뭐야?", "빠진 항목 없어?"';
+            
+            console.log('Summary to send:', summary);
+            
+            // 로딩 메시지 제거 후 응답 표시
+            document.getElementById('loadingMsg')?.remove();
+            await askSocrates(summary);
+            
+            // 버튼 원래대로
+            btn.textContent = originalText;
+            btn.disabled = false;
+            btn.style.opacity = '1';
         }
         
         async function sendChat() {
@@ -485,7 +666,7 @@
                     body: JSON.stringify({message: msg})
                 });
                 const data = await res.json();
-                chat.innerHTML += `<div class="message assistant">${data.response}</div>`;
+                chat.innerHTML += `<div class="message assistant">${parseMarkdown(data.response)}</div>`;
                 chat.scrollTop = chat.scrollHeight;
             } catch (e) {
                 chat.innerHTML += `<div class="message assistant">오류 발생</div>`;
@@ -502,7 +683,7 @@
                 const name = col.querySelector('input')?.value || '';
                 const cardList = [];
                 col.querySelectorAll('.card').forEach(card => {
-                    cardList.push({id: card.id, text: card.textContent});
+                    cardList.push({id: card.id, text: card.querySelector('.card-text')?.textContent || card.textContent});
                 });
                 columns.push({id, name});
                 cards[id] = cardList;
@@ -569,9 +750,16 @@
         // 새 아이템 로드 (STEP 1에서 넘어올 때)
         async function loadNewItems() {
             try {
-                const res = await fetch('/get_items');
-                const data = await res.json();
-                const items = data.items || [];
+                let res = await fetch('/get_items');
+                let data = await res.json();
+                let items = data.items || [];
+                
+                // 아이템이 없으면 대화에서 추출 시도
+                if (items.length === 0) {
+                    const extractRes = await fetch('/extract_items', { method: 'POST' });
+                    const extractData = await extractRes.json();
+                    items = extractData.items || [];
+                }
                 
                 if (items.length > 0) {
                     const body = document.querySelector('#unassigned .column-body');
@@ -581,7 +769,9 @@
                     updateCounts();
                     saveState();
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error('Error loading items:', e);
+            }
         }
         
         async function goBackToStep1() {
@@ -595,7 +785,7 @@
             const classification = {};
             document.querySelectorAll('.column').forEach(col => {
                 const name = col.querySelector('input')?.value || col.id;
-                const cards = Array.from(col.querySelectorAll('.card')).map(c => c.textContent);
+                const cards = Array.from(col.querySelectorAll('.card')).map(c => c.querySelector('.card-text')?.textContent || c.textContent);
                 if (cards.length > 0) {
                     classification[name] = cards;
                 }
@@ -614,9 +804,16 @@
         async function init() {
             setupDragDrop();
             
-            const hasState = await loadState();
-            if (!hasState) {
-                await loadNewItems();
+            await loadState();
+            
+            // 미분류 열에 카드가 없으면 아이템 로드
+            const unassignedCards = document.querySelectorAll('#unassigned .card');
+            if (unassignedCards.length === 0) {
+                // 다른 열에도 카드가 없으면 새로 로드
+                const allCards = document.querySelectorAll('.card');
+                if (allCards.length === 0) {
+                    await loadNewItems();
+                }
             }
             
             // 인사
@@ -626,6 +823,11 @@
                 </div>
             `;
         }
+        
+        // 프로젝트명 표시
+        fetch('/current_project').then(r=>r.json()).then(d=>{
+            if(d.project) document.getElementById('projectName').textContent = '📁 '+d.project;
+        });
         
         init();
     </script>

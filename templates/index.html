@@ -5,15 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>소크라테스식 기획 도우미</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: #000;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -31,18 +27,17 @@
         }
         
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #222;
             color: white;
             padding: 20px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 8px;
         }
         
-        .header h1 {
-            font-size: 1.4rem;
-            font-weight: 600;
-        }
+        .header h1 { font-size: 1.4rem; font-weight: 600; }
+        .header-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
         
         .header button, .header a {
             background: rgba(255,255,255,0.2);
@@ -56,8 +51,14 @@
             transition: background 0.2s;
         }
         
-        .header button:hover {
-            background: rgba(255,255,255,0.3);
+        .header button:hover { background: rgba(255,255,255,0.3); }
+        
+        .project-badge {
+            background: rgba(255,255,255,0.15);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #ccc;
         }
         
         .chat-container {
@@ -67,19 +68,9 @@
             background: #f8f9fa;
         }
         
-        .message {
-            margin-bottom: 16px;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .message.user {
-            align-items: flex-end;
-        }
-        
-        .message.assistant {
-            align-items: flex-start;
-        }
+        .message { margin-bottom: 16px; display: flex; flex-direction: column; }
+        .message.user { align-items: flex-end; }
+        .message.assistant { align-items: flex-start; }
         
         .message-content {
             max-width: 80%;
@@ -90,7 +81,7 @@
         }
         
         .user .message-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #222;
             color: white;
             border-bottom-right-radius: 4px;
         }
@@ -102,11 +93,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
-        .message-label {
-            font-size: 0.75rem;
-            color: #888;
-            margin-bottom: 4px;
-        }
+        .message-label { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
         
         .input-container {
             padding: 20px;
@@ -127,13 +114,10 @@
             transition: border-color 0.2s;
         }
         
-        .input-container textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+        .input-container textarea:focus { outline: none; border-color: #333; }
         
         .input-container button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #222;
             color: white;
             border: none;
             padding: 12px 24px;
@@ -141,84 +125,166 @@
             font-size: 1rem;
             cursor: pointer;
             font-weight: 600;
-            transition: transform 0.1s, box-shadow 0.2s;
+            transition: transform 0.1s;
         }
         
-        .input-container button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
+        .input-container button:hover { transform: translateY(-1px); }
+        .input-container button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
-        .input-container button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .typing {
-            display: flex;
-            gap: 4px;
-            padding: 12px 16px;
-        }
-        
+        .typing { display: flex; gap: 4px; padding: 12px 16px; }
         .typing span {
-            width: 8px;
-            height: 8px;
-            background: #667eea;
-            border-radius: 50%;
+            width: 8px; height: 8px; background: #333; border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out both;
         }
-        
         .typing span:nth-child(1) { animation-delay: -0.32s; }
         .typing span:nth-child(2) { animation-delay: -0.16s; }
-        
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
-        }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
         
         .steps-indicator {
-            display: flex;
-            gap: 8px;
-            padding: 12px 24px;
-            background: #f0f0f0;
-            font-size: 0.85rem;
+            display: flex; gap: 8px; padding: 12px 24px; background: #f0f0f0; font-size: 0.85rem;
+        }
+        .step { padding: 4px 12px; border-radius: 12px; background: #ddd; color: #666; }
+        .step.active { background: #333; color: white; }
+        
+        /* 프로젝트 선택 모달 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
         }
         
-        .step {
-            padding: 4px 12px;
-            border-radius: 12px;
-            background: #ddd;
-            color: #666;
+        .modal {
+            background: white; border-radius: 16px; padding: 32px;
+            width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto;
         }
         
-        .step.active {
-            background: #667eea;
-            color: white;
+        .modal h2 { margin-bottom: 8px; }
+        .modal p { color: #666; margin-bottom: 20px; }
+        
+        .project-list { list-style: none; margin-bottom: 20px; }
+        .project-list li {
+            padding: 14px 16px; border: 2px solid #eee; border-radius: 12px;
+            margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .project-list li:hover { border-color: #333; background: #f8f8f8; }
+        .project-info { flex: 1; }
+        .project-name { font-weight: 600; font-size: 1.05rem; }
+        .project-meta { font-size: 0.8rem; color: #999; margin-top: 4px; }
+        .project-delete {
+            background: none; border: none; color: #ccc; cursor: pointer;
+            font-size: 1.2rem; padding: 4px 8px;
+        }
+        .project-delete:hover { color: #e74c3c; }
+        
+        .new-project-form {
+            display: flex; gap: 8px;
+        }
+        .new-project-form input {
+            flex: 1; padding: 12px 16px; border: 2px solid #333;
+            border-radius: 12px; font-size: 1rem;
+        }
+        .new-project-form button {
+            padding: 12px 20px; background: #222; color: white;
+            border: none; border-radius: 12px; font-size: 1rem;
+            font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        
+        /* 검색 모달 */
+        .search-input-wrap {
+            display: flex; gap: 8px; margin-bottom: 16px;
+        }
+        .search-input-wrap input {
+            flex: 1; padding: 12px 16px; border: 2px solid #333;
+            border-radius: 12px; font-size: 1rem;
+        }
+        .search-input-wrap button {
+            padding: 12px 20px; background: #222; color: white;
+            border: none; border-radius: 12px; font-size: 1rem;
+            font-weight: 600; cursor: pointer;
+        }
+        .search-results { max-height: 50vh; overflow-y: auto; }
+        .search-result-item {
+            padding: 12px 16px; border: 1px solid #eee; border-radius: 10px;
+            margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+        }
+        .search-result-item:hover { border-color: #333; background: #f8f8f8; }
+        .search-result-meta {
+            display: flex; gap: 8px; font-size: 0.75rem; color: #999; margin-bottom: 4px;
+        }
+        .search-result-meta .badge {
+            background: #eee; padding: 2px 8px; border-radius: 8px;
+        }
+        .search-result-preview {
+            font-size: 0.9rem; color: #555; line-height: 1.4;
+        }
+        .search-result-score {
+            font-size: 0.7rem; color: #bbb; float: right;
+        }
+        .search-empty {
+            text-align: center; color: #999; padding: 40px 0; font-size: 0.95rem;
         }
     </style>
 </head>
 <body>
     <!-- 닉네임 입력 모달 -->
-    <div id="nicknameModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:1000;">
-        <div style="background:white;border-radius:16px;padding:32px;width:90%;max-width:400px;text-align:center;">
-            <h2 style="margin-bottom:8px;">🏛️ 소크라테스식 기획 도우미</h2>
-            <p style="color:#666;margin-bottom:24px;">닉네임을 입력하세요</p>
+    <div id="nicknameModal" class="modal-overlay">
+        <div class="modal" style="text-align:center; max-width:400px;">
+            <h2>🏛️ 소크라테스식 기획 도우미</h2>
+            <p>닉네임을 입력하세요</p>
             <input type="text" id="nicknameInput" placeholder="닉네임" 
-                   style="width:100%;padding:12px 16px;border:2px solid #667eea;border-radius:12px;font-size:1.1rem;text-align:center;margin-bottom:16px;"
+                   style="width:100%;padding:12px 16px;border:2px solid #333;border-radius:12px;font-size:1.1rem;text-align:center;margin-bottom:16px;"
                    onkeydown="if(event.key==='Enter')submitNickname()">
             <button onclick="submitNickname()" 
-                    style="width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;">
+                    style="width:100%;padding:12px;background:#222;color:white;border:none;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;">
                 시작하기
             </button>
         </div>
     </div>
     
+    <!-- 검색 모달 -->
+    <div id="searchModal" class="modal-overlay" style="display:none;">
+        <div class="modal">
+            <h2>🔍 검색</h2>
+            <p>모든 프로젝트의 대화와 인사이트에서 검색합니다</p>
+            <div class="search-input-wrap">
+                <input type="text" id="searchInput" placeholder="검색어 입력..." 
+                       onkeydown="if(event.key==='Enter')doSearch()">
+                <button onclick="doSearch()">검색</button>
+            </div>
+            <div class="search-results" id="searchResults">
+                <div class="search-empty">검색어를 입력하세요</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 프로젝트 선택 모달 -->
+    <div id="projectModal" class="modal-overlay" style="display:none;">
+        <div class="modal">
+            <h2>📂 프로젝트 선택</h2>
+            <p>기존 프로젝트를 선택하거나 새로 만드세요</p>
+            <ul class="project-list" id="projectList"></ul>
+            <div class="new-project-form">
+                <input type="text" id="newProjectName" placeholder="새 프로젝트 이름..." 
+                       onkeydown="if(event.key==='Enter')createProject()">
+                <button onclick="createProject()">+ 생성</button>
+            </div>
+        </div>
+    </div>
+    
     <div class="container">
         <div class="header">
-            <h1>🏛️ 소크라테스식 기획 도우미</h1>
-            <button onclick="showHistory()" style="margin-right: 8px;">📚 기록</button>
-            <button onclick="resetChat()">새 대화</button>
+            <div>
+                <h1 id="headerTitle">🏛️ 소크라테스식 기획 도우미</h1>
+                <span class="project-badge" id="projectBadge" style="display:none;"></span>
+            </div>
+            <div class="header-buttons">
+                <button onclick="showSearchModal()">🔍 검색</button>
+                <button onclick="showProjectModal()">📂 프로젝트</button>
+                <button onclick="resetChat()">새 대화</button>
+                <button onclick="location.href='/logout'" style="background:#555;">🚪</button>
+            </div>
         </div>
         
         <div class="steps-indicator">
@@ -227,11 +293,11 @@
             <span class="step" id="step3">3. 재배열</span>
         </div>
         
-        <div class="step-buttons" style="display: flex; gap: 8px; padding: 8px 24px; background: #f8f8f8; border-bottom: 1px solid #eee;">
-            <button onclick="goToStep(2)" id="toStep2Btn" style="flex:1; padding: 8px; border: none; border-radius: 8px; background: #667eea; color: white; cursor: pointer; font-weight: 600;">
+        <div class="step-buttons" style="display:flex;gap:8px;padding:8px 24px;background:#f8f8f8;border-bottom:1px solid #eee;">
+            <button onclick="goToStep(2)" id="toStep2Btn" style="flex:1;padding:8px;border:none;border-radius:8px;background:#333;color:white;cursor:pointer;font-weight:600;">
                 ▶ STEP 2: 분류로 이동
             </button>
-            <button onclick="goToStep(3)" id="toStep3Btn" style="flex:1; padding: 8px; border: none; border-radius: 8px; background: #764ba2; color: white; cursor: pointer; font-weight: 600; display: none;">
+            <button onclick="goToStep(3)" id="toStep3Btn" style="flex:1;padding:8px;border:none;border-radius:8px;background:#764ba2;color:white;cursor:pointer;font-weight:600;display:none;">
                 ▶ STEP 3: 재배열로 이동
             </button>
         </div>
@@ -248,14 +314,10 @@
         </div>
         
         <div class="input-container">
-            <textarea 
-                id="userInput" 
-                placeholder="메시지를 입력하세요..." 
-                rows="2"
-                onkeydown="handleKeyDown(event)"
-            ></textarea>
+            <textarea id="userInput" placeholder="메시지를 입력하세요..." rows="2"
+                      onkeydown="handleKeyDown(event)"></textarea>
             <button onclick="sendMessage()" id="sendBtn">보내기</button>
-            <button onclick="summarize()" id="sumBtn" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">📊 정리</button>
+            <button onclick="summarize()" id="sumBtn" style="background:linear-gradient(135deg,#11998e,#38ef7d);">📊 정리</button>
         </div>
     </div>
     
@@ -263,19 +325,17 @@
         const chatContainer = document.getElementById('chatContainer');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
+        let currentStep = 1;
         
         function addMessage(content, role) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
-            
             const label = document.createElement('span');
             label.className = 'message-label';
             label.textContent = role === 'user' ? '나' : '소크라테스';
-            
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
             contentDiv.textContent = content;
-            
             messageDiv.appendChild(label);
             messageDiv.appendChild(contentDiv);
             chatContainer.appendChild(messageDiv);
@@ -286,151 +346,107 @@
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message assistant';
             typingDiv.id = 'typing';
-            typingDiv.innerHTML = `
-                <span class="message-label">소크라테스</span>
-                <div class="typing">
-                    <span></span><span></span><span></span>
-                </div>
-            `;
+            typingDiv.innerHTML = `<span class="message-label">소크라테스</span><div class="typing"><span></span><span></span><span></span></div>`;
             chatContainer.appendChild(typingDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
         
         function removeTypingIndicator() {
-            const typing = document.getElementById('typing');
-            if (typing) typing.remove();
+            document.getElementById('typing')?.remove();
         }
         
         async function sendMessage() {
             const message = userInput.value.trim();
             if (!message) return;
-            
             userInput.value = '';
             sendBtn.disabled = true;
-            
             addMessage(message, 'user');
             addTypingIndicator();
-            
             try {
                 const response = await fetch('/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message})
                 });
-                
                 const data = await response.json();
                 removeTypingIndicator();
-                
-                if (data.error) {
-                    addMessage('오류: ' + data.error, 'assistant');
-                } else {
-                    addMessage(data.response, 'assistant');
-                }
+                addMessage(data.error ? '오류: ' + data.error : data.response, 'assistant');
             } catch (error) {
                 removeTypingIndicator();
                 addMessage('연결 오류가 발생했습니다.', 'assistant');
             }
-            
             sendBtn.disabled = false;
             userInput.focus();
         }
         
         async function resetChat() {
-            await fetch('/reset', { method: 'POST' });
+            await fetch('/reset', {method: 'POST'});
             chatContainer.innerHTML = `
                 <div class="message assistant">
                     <span class="message-label">소크라테스</span>
-                    <div class="message-content">안녕! 👋 
-
-오늘 어떤 문제나 주제를 함께 정리해볼까?
-
-기획하고 싶은 것, 고민되는 것, 뭐든 말해봐.</div>
-                </div>
-            `;
+                    <div class="message-content">안녕! 👋\n\n오늘 어떤 문제나 주제를 함께 정리해볼까?\n\n기획하고 싶은 것, 고민되는 것, 뭐든 말해봐.</div>
+                </div>`;
         }
         
         function handleKeyDown(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
+            if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }
         }
         
         async function summarize() {
-            const sumBtn = document.getElementById('sumBtn');
-            sumBtn.disabled = true;
-            
+            document.getElementById('sumBtn').disabled = true;
             addMessage("정리해줘", 'user');
             addTypingIndicator();
-            
             try {
-                const response = await fetch('/summarize', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
+                const response = await fetch('/summarize', {method: 'POST', headers: {'Content-Type': 'application/json'}});
                 const data = await response.json();
                 removeTypingIndicator();
-                
-                if (data.error) {
-                    addMessage('오류: ' + data.error, 'assistant');
-                } else {
-                    addMessage(data.response, 'assistant');
-                }
+                addMessage(data.error ? '오류: ' + data.error : data.response, 'assistant');
             } catch (error) {
                 removeTypingIndicator();
                 addMessage('연결 오류가 발생했습니다.', 'assistant');
             }
-            
-            sumBtn.disabled = false;
+            document.getElementById('sumBtn').disabled = false;
         }
-        
-        let currentStep = 1;
         
         async function goToStep(step) {
             const btn = step === 2 ? document.getElementById('toStep2Btn') : document.getElementById('toStep3Btn');
             btn.disabled = true;
             btn.textContent = '항목 추출 중...';
-            
             if (step === 2) {
-                // STEP 2: 칸반 보드로 이동
                 try {
-                    // 먼저 항목 추출
-                    await fetch('/extract_items', { method: 'POST' });
-                    // 칸반 페이지로 이동
+                    // 기존 칸반이 있는지 먼저 확인
+                    const kanbanRes = await fetch('/load_kanban');
+                    const kanbanData = await kanbanRes.json();
+                    
+                    // 칸반에 카드가 없으면 추출
+                    const hasCards = kanbanData.columns && kanbanData.columns.some(col => col.cards && col.cards.length > 0);
+                    if (!hasCards) {
+                        btn.textContent = '항목 추출 중...';
+                        await fetch('/extract_items', {method: 'POST'});
+                    }
                     window.location.href = '/kanban';
                 } catch (error) {
-                    alert('항목 추출 실패');
+                    alert('이동 실패');
                     btn.disabled = false;
                     btn.textContent = '▶ STEP 2: 분류로 이동';
                 }
             } else {
-                // STEP 3: 기존 방식
                 addMessage('재배열 단계로 넘어가자!', 'user');
                 addTypingIndicator();
-                
                 try {
                     const response = await fetch('/next_step', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ step: step })
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({step})
                     });
-                    
                     const data = await response.json();
                     removeTypingIndicator();
-                    
-                    if (data.error) {
-                        addMessage('오류: ' + data.error, 'assistant');
-                    } else {
-                        addMessage(data.response, 'assistant');
-                        currentStep = step;
-                        updateStepIndicator(step);
-                    }
+                    if (data.error) { addMessage('오류: ' + data.error, 'assistant'); }
+                    else { addMessage(data.response, 'assistant'); currentStep = step; updateStepIndicator(step); }
                 } catch (error) {
                     removeTypingIndicator();
                     addMessage('연결 오류가 발생했습니다.', 'assistant');
                 }
-                
                 btn.disabled = false;
                 btn.textContent = '✓ STEP 3 완료';
                 btn.style.background = '#28a745';
@@ -440,109 +456,145 @@
         function updateStepIndicator(step) {
             document.querySelectorAll('.step').forEach((el, i) => {
                 el.classList.remove('active');
-                if (i < step) el.style.background = '#28a745';
+                if (i < step - 1) el.style.background = '#444';
             });
             document.getElementById('step' + step).classList.add('active');
+            const btn2 = document.getElementById('toStep2Btn');
+            const btn3 = document.getElementById('toStep3Btn');
+            if (step === 1) { btn2.style.display = 'block'; btn3.style.display = 'none'; }
+            else if (step === 2) { btn2.style.display = 'none'; btn3.style.display = 'block'; }
+            else if (step === 3) { btn2.style.display = 'block'; btn2.textContent = '◀ STEP 2로 돌아가기'; btn3.style.display = 'none'; }
         }
         
-        async function showHistory() {
+        // ===== 프로젝트 관련 =====
+        
+        async function showProjectModal() {
+            const modal = document.getElementById('projectModal');
+            modal.style.display = 'flex';
+            await loadProjectList();
+        }
+        
+        function hideProjectModal() {
+            document.getElementById('projectModal').style.display = 'none';
+        }
+        
+        // 모달 바깥 클릭으로 닫기
+        document.getElementById('projectModal').addEventListener('click', function(e) {
+            if (e.target === this) hideProjectModal();
+        });
+        
+        async function loadProjectList() {
             try {
-                const response = await fetch('/conversations');
-                const conversations = await response.json();
+                const res = await fetch('/projects');
+                const projects = await res.json();
+                const list = document.getElementById('projectList');
                 
-                if (conversations.length === 0) {
-                    alert('저장된 대화가 없습니다.');
+                if (projects.length === 0) {
+                    list.innerHTML = '<li style="color:#999;cursor:default;border-color:#f0f0f0;">프로젝트가 없습니다. 새로 만들어보세요!</li>';
                     return;
                 }
                 
-                let html = '<div style="max-height: 400px; overflow-y: auto;">';
-                conversations.forEach(conv => {
-                    const date = new Date(conv.started_at).toLocaleString('ko-KR');
-                    html += `
-                        <div style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer;" 
-                             onclick="loadConversation('${conv.id}')">
-                            <strong>${conv.topic || '제목 없음'}</strong><br>
-                            <small style="color: #666;">${date} · ${conv.message_count}개 메시지</small>
+                list.innerHTML = projects.map(p => `
+                    <li onclick="selectProject('${p.name}')">
+                        <div class="project-info">
+                            <div class="project-name">📁 ${p.name}</div>
+                            <div class="project-meta">
+                                ${p.message_count ? p.message_count + '개 메시지' : '새 프로젝트'}
+                                ${p.saved_at ? ' · ' + new Date(p.saved_at).toLocaleDateString('ko-KR') : ''}
+                            </div>
                         </div>
-                    `;
-                });
-                html += '</div>';
-                
-                // 간단한 모달 표시
-                const modal = document.createElement('div');
-                modal.id = 'historyModal';
-                modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:1000;';
-                modal.innerHTML = `
-                    <div style="background:white;border-radius:16px;width:90%;max-width:500px;max-height:80vh;overflow:hidden;">
-                        <div style="padding:16px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;display:flex;justify-content:space-between;align-items:center;">
-                            <h3>📚 대화 기록</h3>
-                            <button onclick="document.getElementById('historyModal').remove()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;">✕</button>
-                        </div>
-                        ${html}
-                    </div>
-                `;
-                document.body.appendChild(modal);
-                modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
-            } catch (error) {
-                alert('기록을 불러오는데 실패했습니다.');
+                        <button class="project-delete" onclick="event.stopPropagation();deleteProject('${p.name}')" title="삭제">🗑</button>
+                    </li>
+                `).join('');
+            } catch (e) {
+                console.error('프로젝트 목록 로드 실패:', e);
             }
         }
         
-        async function loadConversation(sessionId) {
+        async function createProject() {
+            const name = document.getElementById('newProjectName').value.trim();
+            if (!name) return;
+            
             try {
-                const response = await fetch(`/conversations/${sessionId}/load`, { method: 'POST' });
-                const data = await response.json();
-                
+                const res = await fetch('/create_project', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name})
+                });
+                const data = await res.json();
                 if (data.status === 'ok') {
-                    // 모달 닫기
-                    document.getElementById('historyModal')?.remove();
-                    
-                    // 채팅 영역 초기화
-                    chatContainer.innerHTML = '';
-                    
-                    // 메시지 복원
-                    data.messages.forEach(msg => {
-                        addMessage(msg.content, msg.role);
-                    });
-                    
-                    alert('대화를 불러왔습니다!');
+                    document.getElementById('newProjectName').value = '';
+                    await selectProject(data.name);
                 } else {
-                    alert('불러오기 실패: ' + (data.error || '알 수 없는 오류'));
+                    alert(data.error);
                 }
-            } catch (error) {
-                console.error(error);
-                alert('대화를 불러오는데 실패했습니다.');
+            } catch (e) { alert('프로젝트 생성 실패'); }
+        }
+        
+        async function selectProject(name) {
+            try {
+                const res = await fetch(`/select_project/${encodeURIComponent(name)}`, {method: 'POST'});
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    hideProjectModal();
+                    updateProjectBadge(name);
+                    
+                    // 대화 복원
+                    chatContainer.innerHTML = '';
+                    if (data.messages && data.messages.length > 0) {
+                        data.messages.forEach(msg => addMessage(msg.content, msg.role));
+                    } else {
+                        chatContainer.innerHTML = `
+                            <div class="message assistant">
+                                <span class="message-label">소크라테스</span>
+                                <div class="message-content">안녕! 👋\n\n[${name}] 프로젝트를 시작하자!\n\n어떤 문제나 주제를 함께 정리해볼까?</div>
+                            </div>`;
+                    }
+                }
+            } catch (e) { alert('프로젝트 선택 실패'); }
+        }
+        
+        async function deleteProject(name) {
+            if (!confirm(`"${name}" 프로젝트를 삭제할까요?`)) return;
+            try {
+                await fetch(`/delete_project/${encodeURIComponent(name)}`, {method: 'DELETE'});
+                await loadProjectList();
+            } catch (e) { alert('삭제 실패'); }
+        }
+        
+        function updateProjectBadge(name) {
+            const badge = document.getElementById('projectBadge');
+            if (name) {
+                badge.textContent = '📁 ' + name;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
             }
         }
+        
+        // ===== 초기화 =====
         
         async function submitNickname() {
             const nickname = document.getElementById('nicknameInput').value.trim();
-            if (!nickname) {
-                alert('닉네임을 입력하세요!');
-                return;
-            }
-            
+            if (!nickname) { alert('닉네임을 입력하세요!'); return; }
             try {
                 const response = await fetch('/set_user', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nickname })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({nickname})
                 });
                 const data = await response.json();
-                
                 if (data.status === 'ok') {
                     document.getElementById('nicknameModal').style.display = 'none';
-                    document.querySelector('.header h1').textContent = `🏛️ ${nickname}의 기획 도우미`;
-                    userInput.focus();
+                    document.getElementById('headerTitle').textContent = `🏛️ ${nickname}의 기획 도우미`;
+                    // 프로젝트 선택 모달 표시
+                    showProjectModal();
                 } else {
                     alert(data.error || '오류가 발생했습니다.');
                 }
-            } catch (error) {
-                alert('연결 오류가 발생했습니다.');
-            }
+            } catch (error) { alert('연결 오류가 발생했습니다.'); }
         }
         
-        // 페이지 로드 시 사용자 확인
         async function checkUser() {
             try {
                 const response = await fetch('/get_user');
@@ -550,17 +602,52 @@
                 
                 if (data.user) {
                     document.getElementById('nicknameModal').style.display = 'none';
-                    document.querySelector('.header h1').textContent = `🏛️ ${data.user}의 기획 도우미`;
-                    userInput.focus();
+                    document.getElementById('headerTitle').textContent = `🏛️ ${data.user}의 기획 도우미`;
                     
-                    // 칸반에서 돌아온 경우
-                    if (window.location.search.includes('fromKanban=true')) {
-                        window.history.replaceState({}, '', '/');
-                        addMessage('좋아! 더 생각난 게 있구나. 뭐가 떠올랐어?', 'assistant');
+                    // 현재 프로젝트 확인
+                    const projRes = await fetch('/current_project');
+                    const projData = await projRes.json();
+                    
+                    if (projData.project) {
+                        updateProjectBadge(projData.project);
+                        
+                        if (window.location.search.includes('step=3')) {
+                            window.history.replaceState({}, '', '/');
+                            currentStep = 3;
+                            updateStepIndicator(3);
+                            // 대화 불러오기
+                            const convRes = await fetch('/conversations');
+                            const convs = await convRes.json();
+                            if (convs.length > 0) {
+                                const loadRes = await fetch(`/conversations/${convs[0].id}/load`, {method: 'POST'});
+                                const loadData = await loadRes.json();
+                                if (loadData.status === 'ok' && loadData.messages.length > 0) {
+                                    chatContainer.innerHTML = '';
+                                    loadData.messages.forEach(msg => addMessage(msg.content, msg.role));
+                                }
+                            }
+                            addMessage('좋아! 분류가 끝났네. 이제 STEP 3: 재배열이야. 어떤 순서로 진행하면 좋을까?', 'assistant');
+                        } else if (window.location.search.includes('fromKanban=true')) {
+                            window.history.replaceState({}, '', '/');
+                        } else {
+                            // 현재 프로젝트 대화 불러오기
+                            const convRes = await fetch('/conversations');
+                            const convs = await convRes.json();
+                            if (convs.length > 0) {
+                                const loadRes = await fetch(`/conversations/${convs[0].id}/load`, {method: 'POST'});
+                                const loadData = await loadRes.json();
+                                if (loadData.status === 'ok' && loadData.messages.length > 0) {
+                                    chatContainer.innerHTML = '';
+                                    loadData.messages.forEach(msg => addMessage(msg.content, msg.role));
+                                }
+                            }
+                        }
                     } else {
-                        // 마지막 대화 자동 불러오기
-                        await loadLastConversation();
+                        // 프로젝트 미선택 → 프로젝트 선택 모달
+                        showProjectModal();
                     }
+                    
+                    userInput.focus();
                 } else {
                     document.getElementById('nicknameInput').focus();
                 }
@@ -569,27 +656,59 @@
             }
         }
         
-        async function loadLastConversation() {
+        // ===== 검색 =====
+        
+        function showSearchModal() {
+            document.getElementById('searchModal').style.display = 'flex';
+            document.getElementById('searchInput').focus();
+        }
+        
+        function hideSearchModal() {
+            document.getElementById('searchModal').style.display = 'none';
+        }
+        
+        document.getElementById('searchModal').addEventListener('click', function(e) {
+            if (e.target === this) hideSearchModal();
+        });
+        
+        async function doSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+            
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '<div class="search-empty">검색 중...</div>';
+            
             try {
-                const response = await fetch('/conversations');
-                const conversations = await response.json();
+                const res = await fetch('/search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({query})
+                });
+                const data = await res.json();
                 
-                if (conversations.length > 0) {
-                    // 가장 최근 대화 불러오기
-                    const latest = conversations[0];
-                    const loadRes = await fetch(`/conversations/${latest.id}/load`, { method: 'POST' });
-                    const data = await loadRes.json();
-                    
-                    if (data.status === 'ok' && data.messages.length > 0) {
-                        chatContainer.innerHTML = '';
-                        data.messages.forEach(msg => {
-                            addMessage(msg.content, msg.role);
-                        });
-                    }
+                if (!data.results || data.results.length === 0) {
+                    resultsDiv.innerHTML = '<div class="search-empty">결과가 없습니다</div>';
+                    return;
                 }
-            } catch (error) {
-                console.error('마지막 대화 불러오기 실패:', error);
+                
+                resultsDiv.innerHTML = data.results.map(r => `
+                    <div class="search-result-item" onclick="goToSearchResult('${encodeURIComponent(r.project)}')">
+                        <div class="search-result-meta">
+                            <span class="badge">${r.type === 'memory' ? '📝 메모리' : r.role === 'user' ? '👤 사용자' : '🤖 AI'}</span>
+                            <span class="badge">📁 ${r.project}</span>
+                            <span class="search-result-score">관련도: ${(r.score * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="search-result-preview">${r.preview}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                resultsDiv.innerHTML = '<div class="search-empty">검색 오류</div>';
             }
+        }
+        
+        async function goToSearchResult(projectName) {
+            hideSearchModal();
+            await selectProject(decodeURIComponent(projectName));
         }
         
         checkUser();

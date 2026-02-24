@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  socratic-chat:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./conversations:/app/conversations
+      - /home/jaewon/.openclaw/agents/main/agent:/root/.openclaw/agents/main/agent:ro
+    environment:
+      - PORT=8000
+    restart: unless-stopped

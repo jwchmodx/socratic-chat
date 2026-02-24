@@ -1,0 +1,25 @@
+{
+  "name": "socratic-chat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jwchmodx/socratic-chat.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jwchmodx/socratic-chat/issues"
+  },
+  "homepage": "https://github.com/jwchmodx/socratic-chat#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}
